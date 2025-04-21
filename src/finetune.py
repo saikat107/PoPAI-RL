@@ -91,14 +91,4 @@ trainer = SFTTrainer(
 )
 
 
-# handle PEFT+FSDP case
-trainer.model.print_trainable_parameters()
-if getattr(trainer.accelerator.state, "fsdp_plugin", None):
-    print("Wrapping policy")
-    from peft.utils.other import fsdp_auto_wrap_policy
-
-    fsdp_plugin = trainer.accelerator.state.fsdp_plugin
-    fsdp_plugin.auto_wrap_policy = fsdp_auto_wrap_policy(trainer.model)
-
-
 trainer.train()
