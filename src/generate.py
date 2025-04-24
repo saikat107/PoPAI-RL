@@ -58,6 +58,7 @@ tokenizer = AutoTokenizer.from_pretrained(args.model_name if args.model_name is 
 llm = LLM(
     model=args.model_name if args.model_name is not None else args.model_path,
     tensor_parallel_size=args.num_gpus,
+    dtype='auto'
 )
 sampling_params = SamplingParams(
     temperature=args.temperature, 
