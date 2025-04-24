@@ -76,16 +76,16 @@ for ti, test in enumerate(tqdm(test_data)):
         "id": f'{ti}',
         "prompt": prompt,
     }
-    response = llm.generate([request], sampling_params)[0]
-    generations = []
-    for output in responses.outputs:
-        generations.append(output.text)
-    test["generated_response"] = {
-        "model_name": args.model_name,
-        "model_path": args.model_path,
-        "which_prompt": args.which_prompt,
-        "responses": generations,
-    }
+    for response in llm.generate([request], sampling_params)[0]
+        generations = []
+        for output in response.outputs:
+            generations.append(output.text)
+        test["generated_response"] = {
+            "model_name": args.model_name,
+            "model_path": args.model_path,
+            "which_prompt": args.which_prompt,
+            "responses": generations,
+        }
     
 with open(os.path.join(args.output_dir, os.path.basename(agrs.test_file)), "w") as f:
     json.dump(test_data, f, indent=4)
