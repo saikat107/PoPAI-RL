@@ -49,3 +49,4 @@ trl==0.16.0
 xformer==1.0.1
 xformers==0.0.28.post3
 flash-attn==2.7.4.post1
+vllm==0.7.2

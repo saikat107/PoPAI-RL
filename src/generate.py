@@ -8,7 +8,7 @@ import json
 
 parser = argparse.ArgumentParser(description="Generate text using a language model.")
 parser.add_argument(
-    "--model_name", type="str", default=None, help="Name of the model to use for generation (only when using a pretrained model)."
+    "--model_name", type=str, default=None, help="Name of the model to use for generation (only when using a pretrained model)."
 )
 parser.add_argument(
     "--model_path", type=str, default=None, help="Path to the model to use for generation (only when using a local model).",
