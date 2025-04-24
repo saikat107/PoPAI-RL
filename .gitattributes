@@ -3,3 +3,4 @@ thought_sft_mixed/train.json filter=lfs diff=lfs merge=lfs -text
 sampled_test_data/ filter=lfs diff=lfs merge=lfs -text
 sampled_test_data/verus_sampled.json filter=lfs diff=lfs merge=lfs -text
 sampled_test_data/fstar_sampled.json filter=lfs diff=lfs merge=lfs -text
+evaluation/FStar/helpers.zip filter=lfs diff=lfs merge=lfs -text

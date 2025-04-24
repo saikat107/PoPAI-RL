@@ -68,7 +68,13 @@ sampling_params = SamplingParams(
     n=args.num_generations,
 )
 
-test_data = json.load(open(args.test_file, "r"))
+result_path = os.path.join(args.output_dir, os.path.basename(args.test_file))
+if os.path.exists(result_path):
+    print(f"Existing results found at {result_path}. We will append the new results to this file.")
+    test_data = json.load(open(result_path, "r"))
+else:
+    print(f"Loading test data from {args.test_file}.")
+    test_data = json.load(open(args.test_file, "r"))
 
 for ti, test in enumerate(tqdm(test_data)):
     prompt = tokenizer.apply_chat_template(test[args.which_prompt], tokenize=False)
@@ -93,7 +99,7 @@ for ti, test in enumerate(tqdm(test_data)):
             }
         )
     
-    with open(os.path.join(args.output_dir, os.path.basename(args.test_file)), "w") as f:
+    with open(, "w") as f:
         json.dump(test_data, f, indent=4)
 print(f"Generated responses saved to {os.path.join(args.output_dir, os.path.basename(args.test_file))}")
 
