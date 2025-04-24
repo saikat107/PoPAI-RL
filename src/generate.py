@@ -80,12 +80,18 @@ for ti, test in enumerate(tqdm(test_data)):
         generations = []
         for output in response.outputs:
             generations.append(output.text)
-        test["generated_response"] = {
-            "model_name": args.model_name,
-            "model_path": args.model_path,
-            "which_prompt": args.which_prompt,
-            "responses": generations,
-        }
+        if "generated_response" not in test:
+            test["generated_response"] = []
+        elif isinstance(test["generated_response"], dict):
+            test["generated_response"] = [test["generated_response"]]
+        test["generated_response"].append(
+            {
+                "model_name": args.model_name,
+                "model_path": args.model_path,
+                "which_prompt": args.which_prompt,
+                "responses": generations,
+            }
+        )
     
     with open(os.path.join(args.output_dir, os.path.basename(args.test_file)), "w") as f:
         json.dump(test_data, f, indent=4)
