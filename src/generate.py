@@ -52,7 +52,7 @@ assert not (args.model_name and args.model_path), "Only one of --model_name or -
 args.output_dir = args.output_dir or os.path.join(os.getcwd(), "outputs")
 os.makedirs(args.output_dir, exist_ok=True)
 
-tokenizer = AutoTokenizer.from_pretrained(model_name)
+tokenizer = AutoTokenizer.from_pretrained(args.model_name if args.model_name is not None else args.model_path)
 
 
 llm = LLM(
