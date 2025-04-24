@@ -87,8 +87,8 @@ for ti, test in enumerate(tqdm(test_data)):
             "responses": generations,
         }
     
-with open(os.path.join(args.output_dir, os.path.basename(agrs.test_file)), "w") as f:
-    json.dump(test_data, f, indent=4)
+    with open(os.path.join(args.output_dir, os.path.basename(agrs.test_file)), "w") as f:
+        json.dump(test_data, f, indent=4)
 print(f"Generated responses saved to {os.path.join(args.output_dir, os.path.basename(args.test_file))}")
 
 
