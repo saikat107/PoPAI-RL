@@ -76,7 +76,7 @@ for ti, test in enumerate(tqdm(test_data)):
         "id": f'{ti}',
         "prompt": prompt,
     }
-    for response in llm.generate([request], sampling_params)[0]
+    for response in llm.generate([request], sampling_params)[0]:
         generations = []
         for output in response.outputs:
             generations.append(output.text)
