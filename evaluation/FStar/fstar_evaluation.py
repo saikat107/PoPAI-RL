@@ -154,12 +154,6 @@ def eprint(msg):
 T = TypeVar("T")
 
 
-class IdeResponse(TypedDict("Detail", {"query-id": str}), Generic[T]):
-    kind: str
-    status: str
-    response: T
-
-
 IssueLevel = Literal["error", "warning", "info", "not-implemented"]
 
 IssuePos = tuple[int, int]
@@ -178,15 +172,12 @@ class Issue(TypedDict):
     ranges: list[IssueRange]
 
 
-PushResponse = IdeResponse[list[Issue]]
-
-
 class Result(TypedDict):
     name: str
     goal_statement: Optional[str]
     full_solution: Optional[str]
     result: bool
-    detail: Optional[PushResponse]
+    detail: Optional[Any]
     server_crashed: Any
 
 
@@ -261,7 +252,7 @@ class FStarIdeProcess:
         self.qid += 1
         return str(self.qid)
 
-    def call_simple(self, query: str, args: Any) -> IdeResponse[Any]:
+    def call_simple(self, query: str, args: Any) -> Any:
         qid = self._next_qid()
         self._write_msg({"query-id": qid, "query": query, "args": args})
         while True:
@@ -297,7 +288,7 @@ class FStarIdeProcess:
 
     def check_snippet_at_decl(
         self, decl_name: str, snippet: str
-    ) -> tuple[bool, PushResponse]:
+    ) -> tuple[bool, Any]:
         def timeout_handler():
             self.timeout_happened = True
             self.process.terminate()
