@@ -5,3 +5,4 @@ sampled_test_data/verus_sampled.json filter=lfs diff=lfs merge=lfs -text
 sampled_test_data/fstar_sampled.json filter=lfs diff=lfs merge=lfs -text
 evaluation/FStar/helpers.zip filter=lfs diff=lfs merge=lfs -text
 evaluation/Verus/helpers.zip filter=lfs diff=lfs merge=lfs -text
+rl_data/train_rl.json filter=lfs diff=lfs merge=lfs -text
