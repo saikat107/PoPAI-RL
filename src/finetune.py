@@ -33,6 +33,7 @@ parser.add_argument("--max_grad_norm", type=float, default=0.3, help="Maximum gr
 parser.add_argument("--max_steps", type=int, default=1000, help="Maximum training steps.")
 parser.add_argument("--warmup_ratio", type=float, default=0.1, help="Warmup ratio.")
 parser.add_argument("--lr_scheduler_type", type=str, default="cosine", help="Learning rate scheduler type.")
+parser.add_argument("--data_path", type=str, default="./thought_sft_mixed", help="Path to the dataset.")
 
 parser.add_argument(
     "--languages_to_train_on", type=str, help="Languages to train on.", choices=["verus", "fstar"], nargs="+",
@@ -63,7 +64,7 @@ os.makedirs(output_dir, exist_ok=True)
 
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-data_path = os.path.realpath("./thought_sft_mixed")
+data_path = os.path.realpath(args.data_path)
 dataset = load_dataset(path=data_path)
 
 data_type = torch.bfloat16
