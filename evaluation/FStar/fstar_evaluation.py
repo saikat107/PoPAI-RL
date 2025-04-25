@@ -28,6 +28,7 @@ import threading
 import multiprocessing
 import random
 import queue
+import numpy as np
 
 
 current_dir = os.path.realpath(os.path.dirname(os.path.abspath(__file__)))
