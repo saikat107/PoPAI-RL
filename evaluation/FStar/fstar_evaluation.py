@@ -938,6 +938,8 @@ def find_solution(entry, solution_key):
             solution_key_parts = solution_key.split("/")
             responses = entry
             for k in solution_key_parts:
+                if not isinstance(responses, dict) and isinstance(responses, list):
+                    responses = responses[0]
                 responses = responses[k]
             assert isinstance(responses, list) or isinstance(responses, str), f"Expected list or string, got {type(responses)}"
         if isinstance(responses, str):
