@@ -146,8 +146,9 @@ class InsightFile(InsightFileFirstPass):
 
 
 def eprint(msg):
-    sys.stderr.write(str(msg) + "\n")
-    sys.stderr.flush()
+    # sys.stderr.write(str(msg) + "\n")
+    # sys.stderr.flush()
+    pass
 
 
 T = TypeVar("T")
@@ -227,7 +228,8 @@ class FStarIdeProcess:
 
     def on_message(self, msg):
         if msg.get("level") != "progress":
-            eprint(msg["contents"])
+            # eprint(msg["contents"])
+            pass
 
     def _read_msg(self) -> Any:
         while True:
@@ -747,8 +749,8 @@ def pool_tasks_of_file(json_data: InsightFile, warn=False) -> list[PoolTask]:
     items: list[PoolTask] = []
     for entry in json_data["defs"]:
         if reason := should_ignore(entry):
-            if warn:
-                eprint(f'Ignoring {entry["name"]}: {reason}')
+            # if warn:
+            #     eprint(f'Ignoring {entry["name"]}: {reason}')
             continue
         items.append(entry)
     return items
@@ -809,13 +811,7 @@ def check_example(inp):
     if check_ground_truth:
         responses = [example["source_definition"]]
     else:
-        solution_key_parts = solution_key.split("/")
-        responses = example
-        for k in solution_key_parts:
-            responses = responses[k]
-        assert isinstance(responses, list) or isinstance(responses, str)
-        if isinstance(responses, str):
-            responses = [responses]
+        responses = example[solution_key]
         responses = [sanitize(r) for r in responses]
     results = [None] * len(responses)
     truths = [False] * len(responses)
@@ -875,15 +871,14 @@ class Evaluator:
         return truths[0], res[0]
 
 
-def summarize_metrics(metrics_list):
+def summarize_metrics(metrics_list, short=False):
     summary = {}
     for metric in metrics_list[0]:
         values = [m[metric] if metric in m else False for m in metrics_list]
         summary[metric] = round((sum(values) * 100 / len(values)), 2)
-        summary[str(metric) + "_count"] = sum(values)
-        summary[(str(metric) + "_count").replace("pass", "fail")] = len(values) - sum(
-            values
-        )
+    if short:
+        metrics = list(metrics_list[0].keys())
+        summary = {metrics[0]: summary[metrics[0]], metrics[-1]: summary[metrics[-1]]}
     return summary
 
 
@@ -908,6 +903,18 @@ def extract_json_with_keys(text, keys):
             continue
     return valid_json_objects
 
+def extract_inside_a_pattern(texts, tag):
+    extractions = []
+    begin_tag = f"<{tag}>"
+    end_tag = f"</{tag}>"
+    for text in texts:
+        if begin_tag in text:
+            text = text[text.index(begin_tag) + len(begin_tag) :]
+            if end_tag in text:
+                text = text[: text.index(end_tag)]
+        extractions.append(text.strip())
+    return extractions
+
 
 def get_argument():
     parser = argparse.ArgumentParser()
@@ -921,22 +928,44 @@ def get_argument():
     # Use the following two arguments ONLY if the generated response is a json object
     # and you want to extract a specific key from it, by default the key is "definition"
     parser.add_argument(
-        "--extract_json_from_solution",
-        "-e",
-        action="store_true",
-        help="Whether to extract json from the solution",
+        "--extract_from_solution", "-e", action="store_true", help="Whether to extract json from the solution",
     )
     parser.add_argument(
-        "--solution_key_in_json",
-        "-j",
-        type=str,
-        help="Keys to extract from the json",
-        default="definition"
+        "--solution_tag", "-a", type=str, help="tag to extract from the solution",
+        default="answer"
     )
     parser.add_argument("--timeout", "-t", type=float, default=100000)
     parser.add_argument("--num_workers", "-w", type=int, default=80)
     return parser.parse_args()
 
+
+def find_solution(entry, solution_key):
+    try:
+        if "/" not in solution_key:
+            response = entry[solution_key]
+        else:
+            solution_key_parts = solution_key.split("/")
+            responses = entry
+            for k in solution_key_parts:
+                responses = responses[k]
+            assert isinstance(responses, list) or isinstance(responses, str), f"Expected list or string, got {type(responses)}"
+        if isinstance(responses, str):
+            responses = [responses]
+        return responses
+    except Exception as e:
+        print(f"Error finding solution: {e}")
+        traceback.print_exc()
+        return None
+
+def calculate_pass_at_k(truths, k=1):
+    n = len(truths)
+    c = sum([1 for t in truths if t])
+    if n - c == 0:
+        return 1.0
+    return 1.0 - np.prod(1.0 - k / np.arange(n - c + 1, n + 1))
+
+def pass_at_k(list_of_truths, k=1):
+    return np.mean([calculate_pass_at_k(truths, k) for truths in list_of_truths])
 
 def main():
     args = get_argument()
@@ -953,26 +982,29 @@ def main():
             for k in tmp_t:
                 if k not in t:
                     t[k] = tmp_t[k]
-        if args.solution_key not in t:
-            print(
-                f"Solution key not found in the example {t['name']}. Adding empty solution"
-            )
-            t[args.solution_key] = ""
-        if args.extract_json_from_solution:
-            jsons = extract_json_with_keys(
-                t[args.solution_key], [args.solution_key_in_json]
-            )
-            solution_key = args.solution_key + "-extracted"
-            if len(jsons) == 0:
+        if not args.check_ground_truth:
+            solutions = find_solution(t, args.solution_key)
+            tmp_sol_key = args.solution_key
+            if "/" in tmp_sol_key:
+                tmp_sol_key = tmp_sol_key.replace("/", "_")
+                
+            if solutions is None:
                 print(
-                    f"Coudln't extract json from the solution {t['name']}. Adding empty solution"
+                    f"Solution key not found in the example {t['name']}. Adding empty solution"
                 )
-                t[solution_key] = ""
+                t[tmp_sol_key] = ""
             else:
-                # Extract the last json object, assuming the last one is the final answer
-                t[solution_key] = jsons[-1][args.solution_key_in_json]
-    if args.extract_json_from_solution:
-        args.solution_key = args.solution_key + "-extracted"
+                t[tmp_sol_key] = solutions
+            
+            if args.extract_from_solution:
+                t[tmp_sol_key + "-extracted"] = extract_inside_a_pattern(
+                    t[tmp_sol_key], args.solution_tag
+                )
+    if not args.check_ground_truth:
+        if args.extract_from_solution:
+            args.solution_key = args.solution_key + "-extracted"
+        if "/" in args.solution_key:
+            args.solution_key = args.solution_key.replace("/", "_")
     tasks = [
         (t, args.check_ground_truth, args.solution_key, args.timeout) for t in tasks
     ]
@@ -983,19 +1015,30 @@ def main():
     )
     mapping_function = pool.imap_unordered if pool is not None else map
     results = mapping_function(check_example, tasks)
-    detailed_results, aggregate_metrics = [], []
+    detailed_results, aggregate_metrics, aggregate_truths = [], [], []
     bar = tqdm.tqdm(results, total=len(tasks), desc="")
     for example, res, truths, metrics in bar:
         detailed_results.append(
             {"example": example, "results": res, "truths": truths, "metrics": metrics}
         )
         aggregate_metrics.append(metrics)
-        bar.set_description(json.dumps(summarize_metrics(aggregate_metrics)))
+        aggregate_truths.append(truths)
+        bar.set_description(json.dumps(summarize_metrics(aggregate_metrics, short=True)))
     if pool:
         pool.close()
 
     final_summary_metrics = summarize_metrics(aggregate_metrics)
-    print(json.dumps(final_summary_metrics, indent=4))
+    print(json.dumps(final_summary_metrics))
+    pass_at_1 = pass_at_k(aggregate_truths, k=1)
+    pass_at_2 = pass_at_k(aggregate_truths, k=2)
+    pass_at_5 = pass_at_k(aggregate_truths, k=5)
+    print("Expected Metrics:")
+    print(f"Pass@1: {pass_at_1}")
+    print(f"Pass@2: {pass_at_2}")
+    print(f"Pass@5: {pass_at_5}")
+    final_summary_metrics["expected_pass@1"] = pass_at_1
+    final_summary_metrics["expected_pass@2"] = pass_at_2
+    final_summary_metrics["expected_pass@5"] = pass_at_5
     if args.output_dir is not None:
         if len(generated_files) > 1:
             assert (

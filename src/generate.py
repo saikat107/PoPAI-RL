@@ -21,8 +21,9 @@ parser.add_argument(
     choices=['prompt', 'no_thought_prompt'],
 )
 parser.add_argument(
-    "--output_dir", type=str, default=None, help="Directory to save the generated outputs.",
+    "--output_dir", type=str, default=None, help="Directory to save the generated outputs.", required=True
 )
+parser.add_argument("--output_file", type=str, default=None, help="File to save the generated outputs.", required=True)
 parser.add_argument(
     "--max_length", type=int, default=4096, help="Maximum length of the generated text.",
 )
@@ -68,7 +69,7 @@ sampling_params = SamplingParams(
     n=args.num_generations,
 )
 
-result_path = os.path.join(args.output_dir, os.path.basename(args.test_file))
+result_path = os.path.join(args.output_dir, args.output_file)
 if os.path.exists(result_path):
     print(f"Existing results found at {result_path}. We will append the new results to this file.")
     test_data = json.load(open(result_path, "r"))
@@ -99,9 +100,9 @@ for ti, test in enumerate(tqdm(test_data)):
             }
         )
     
-    with open(, "w") as f:
+    with open(result_path, "w") as f:
         json.dump(test_data, f, indent=4)
-print(f"Generated responses saved to {os.path.join(args.output_dir, os.path.basename(args.test_file))}")
+print(f"Generated responses saved to {os.path.join(args.output_dir, args.output_file)}")
 
 
 

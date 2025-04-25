@@ -176,4 +176,4 @@ cython_debug/
 
 *wandb*
 *results*
-evaluation/FStar/helpers/*
+evaluation/*/helpers/*
