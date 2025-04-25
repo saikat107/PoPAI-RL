@@ -23,17 +23,21 @@ parser.add_argument("--model_name", type=str, default="Qwen/QwQ-32B", help="Mode
 parser.add_argument("--no_thought_prompt", action="store_true", help="Use no thought prompt.")
 parser.add_argument("--max_seq_length", type=int, default=16000, help="Maximum sequence length.")
 parser.add_argument("--output_dir", type=str, default="./results", help="Output directory.")
-parser.add_argument("--final_ckpt", type=str, default="./finetune_final_ckpt", help="Final checkpoint directory.")
 parser.add_argument("--per_device_train_batch_size", type=int, default=2, help="Batch size per device.")
 parser.add_argument("--gradient_accumulation_steps", type=int, default=2, help="Gradient accumulation steps.")
 parser.add_argument("--optim", type=str, default="adamw_torch", help="Optimizer type.")
-parser.add_argument("--save_steps", type=int, default=500, help="Save checkpoint every N steps.")
+parser.add_argument("--save_steps", type=int, default=100, help="Save checkpoint every N steps.")
 parser.add_argument("--logging_steps", type=int, default=1, help="Log every N steps.")
 parser.add_argument("--learning_rate", type=float, default=2e-4, help="Learning rate.")
 parser.add_argument("--max_grad_norm", type=float, default=0.3, help="Maximum gradient norm.")
 parser.add_argument("--max_steps", type=int, default=1000, help="Maximum training steps.")
 parser.add_argument("--warmup_ratio", type=float, default=0.1, help="Warmup ratio.")
 parser.add_argument("--lr_scheduler_type", type=str, default="cosine", help="Learning rate scheduler type.")
+
+parser.add_argument(
+    "--languages_to_train_on", type=str, help="Languages to train on.", choices=["verus", "fstar"], nargs="+",
+    default=["verus", "fstar"]
+)
 args = parser.parse_args()
 
 set_seed(42)
@@ -120,6 +124,13 @@ def appropriate_defn(name, defn):
         return defn 
 
 model.config.use_cache = False
+
+def which_language(name):
+    if name.startswith("VERUS"):
+        return "verus"
+    else:
+        return "fstar"
+    
 def format_text(example):
     messages = (
         appropriate_prompt(example["name"], example["prompt"]) + 
@@ -130,20 +141,29 @@ def format_text(example):
     example["text"] = text
     example["input_ids"] = tokens
     example["num_tokens"] = len(tokens)
+    example["language"] = which_language(example["name"])
     return example
 
 
 train_data = dataset["train"].map(format_text, num_proc=20)
 valid_data = dataset["test"].map(format_text, num_proc=20)
 print("Train data size:", len(train_data))
-train_data = train_data.filter(lambda x: x["num_tokens"] < max_seq_length, num_proc=20)
+train_data = train_data.filter(
+    lambda x: (x["num_tokens"] < max_seq_length and x["language"] in args.languages_to_train_on), 
+    num_proc=20
+)
 print("Train data size after filter:", len(train_data))
 print("Valid data size:", len(valid_data))
-valid_data = valid_data.filter(lambda x: x["num_tokens"] < max_seq_length, num_proc=20)
+valid_data = valid_data.filter(
+    lambda x: (x["num_tokens"] < max_seq_length and x["language"] in args.languages_to_train_on),  
+    num_proc=20
+)
 print("Valid data size after filter:", len(valid_data))
 
 
 training_arguments = SFTConfig(
+    do_train=True,
+    do_eval=True,
     output_dir=output_dir,
     per_device_train_batch_size=per_device_train_batch_size,
     gradient_accumulation_steps=gradient_accumulation_steps,
@@ -162,7 +182,7 @@ training_arguments = SFTConfig(
 
 # print model is local_rank 0
 if torch.distributed.get_rank() == 0:
-    print(model.dtype)
+    print(model)
     
     
 trainer = SFTTrainer(
