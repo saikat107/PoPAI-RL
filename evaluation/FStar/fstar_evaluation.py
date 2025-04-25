@@ -10,7 +10,6 @@ import tqdm
 from typing import (
     Generic,
     Literal,
-    NotRequired,
     TypeVar,
     TypedDict,
     Any,
@@ -174,7 +173,7 @@ class IssueRange(TypedDict):
 
 class Issue(TypedDict):
     level: IssueLevel
-    number: NotRequired[int]
+    number: int
     message: str
     ranges: list[IssueRange]
 
@@ -188,7 +187,7 @@ class Result(TypedDict):
     full_solution: Optional[str]
     result: bool
     detail: Optional[PushResponse]
-    server_crashed: NotRequired[Any]
+    server_crashed: Any
 
 
 class UnexpectedResponse(Exception):
@@ -966,9 +965,7 @@ def calculate_pass_at_k(truths, k=1):
     return 1.0 - np.prod(1.0 - k / np.arange(n - c + 1, n + 1))
 
 def pass_at_k(list_of_truths, k=1):
-    return round(
-        np.mean([calculate_pass_at_k(truths, k) for truths in list_of_truths]) * 100, 2
-    )
+    return np.mean([calculate_pass_at_k(truths, k) for truths in list_of_truths])
 
 def main():
     args = get_argument()
