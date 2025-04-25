@@ -966,7 +966,9 @@ def calculate_pass_at_k(truths, k=1):
     return 1.0 - np.prod(1.0 - k / np.arange(n - c + 1, n + 1))
 
 def pass_at_k(list_of_truths, k=1):
-    return np.mean([calculate_pass_at_k(truths, k) for truths in list_of_truths])
+    return round(
+        np.mean([calculate_pass_at_k(truths, k) for truths in list_of_truths]) * 100, 2
+    )
 
 def main():
     args = get_argument()

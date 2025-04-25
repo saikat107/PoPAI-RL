@@ -179,19 +179,14 @@ def check_example(inp):
     return (example, results, truths, evaluation_function(truths))
 
 
-# class Evaluator:
-#     def __init__(self):
-#         current_dir = os.path.realpath(os.path.dirname(os.path.abspath(__file__)))
-#         self.full_data_path = os.path.join(current_dir, "helpers/full_data.json")
-#         self.full_data = json.load(open(self.full_data_path, "r"))
-
-#     def check_solution(self, example_name: str, solution: str, timeout: int = 300):
-#         example = copy.copy(self.full_data[example_name])
-#         example["generated_response"] = [solution]
-#         example, res, truths, _ = check_example(
-#             (example, False, "generated_response", timeout)
-#         )
-#         return truths[0], res[0]
+class Evaluator:
+    def check_solution(self, example_name: str, solution: str, timeout: int = 300):
+        example = {"name": example_name}
+        example["generated_response"] = [solution]
+        example, res, truths, _ = check_example(
+            (example, False, "generated_response", timeout)
+        )
+        return truths[0], res[0]
 
 
 def summarize_metrics(metrics_list, short=False):
@@ -290,7 +285,9 @@ def calculate_pass_at_k(truths, k=1):
     return 1.0 - np.prod(1.0 - k / np.arange(n - c + 1, n + 1))
 
 def pass_at_k(list_of_truths, k=1):
-    return np.mean([calculate_pass_at_k(truths, k) for truths in list_of_truths])
+    return round(
+        np.mean([calculate_pass_at_k(truths, k) for truths in list_of_truths]) * 100, 2
+    )
 
 def main():
     args = get_argument()
