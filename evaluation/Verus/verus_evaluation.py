@@ -10,7 +10,6 @@ import tqdm
 from typing import (
     Generic,
     Literal,
-    NotRequired,
     TypeVar,
     TypedDict,
     Any,
@@ -36,6 +35,16 @@ current_dir = os.path.realpath(os.path.dirname(os.path.abspath(__file__)))
 bin_path = os.path.join(current_dir, "helpers")
 os.environ["PATH"] = bin_path + ":" + os.environ["PATH"]
 
+def add_to_path(p):
+    paths = os.environ["PATH"].split(":")
+    if p not in paths:
+        os.environ["PATH"] = p + ":" + os.environ["PATH"]
+
+def remove_from_path(p):
+    paths = os.environ["PATH"].split(":")
+    if p in paths:
+        paths.remove(p)
+    os.environ["PATH"] = ":".join(paths)
 
 def eprint(msg):
     # sys.stderr.write(str(msg) + "\n")
@@ -180,12 +189,19 @@ def check_example(inp):
 
 
 class Evaluator:
+    def __init__(self):
+        current_dir = os.path.realpath(os.path.dirname(os.path.abspath(__file__)))
+        self.bin_path = os.path.join(current_dir, "helpers")
+        
     def check_solution(self, example_name: str, solution: str, timeout: int = 300):
+        remove_from_path(self.bin_path)
+        add_to_path(self.bin_path)
         example = {"name": example_name}
         example["generated_response"] = [solution]
         example, res, truths, _ = check_example(
             (example, False, "generated_response", timeout)
         )
+        remove_from_path(self.bin_path)
         return truths[0], res[0]
 
 

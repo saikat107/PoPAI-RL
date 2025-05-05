@@ -37,6 +37,18 @@ os.environ["PATH"] = bin_path + ":" + os.environ["PATH"]
 full_data_path = os.path.join(current_dir, "helpers/full_data.json")
 FULL_DATA = json.load(open(full_data_path, "r"))
 
+def add_to_path(p):
+    paths = os.environ["PATH"].split(":")
+    if p not in paths:
+        os.environ["PATH"] = p + ":" + os.environ["PATH"]
+
+def remove_from_path(p):
+    paths = os.environ["PATH"].split(":")
+    if p in paths:
+        paths.remove(p)
+    os.environ["PATH"] = ":".join(paths)
+
+
 class Dependency(TypedDict):
     source_file: str
     checked_file: str
@@ -852,13 +864,17 @@ class Evaluator:
         current_dir = os.path.realpath(os.path.dirname(os.path.abspath(__file__)))
         self.full_data_path = os.path.join(current_dir, "helpers/full_data.json")
         self.full_data = json.load(open(self.full_data_path, "r"))
+        self.bin_path = os.path.join(current_dir, "helpers/bin")
 
     def check_solution(self, example_name: str, solution: str, timeout: int = 300):
+        remove_from_path(self.bin_path)
+        add_to_path(self.bin_path)
         example = copy.copy(self.full_data[example_name])
         example["generated_response"] = [solution]
         example, res, truths, _ = check_example(
             (example, False, "generated_response", timeout)
         )
+        remove_from_path(self.bin_path)
         return truths[0], res[0]
 
 

@@ -31,11 +31,13 @@ from evaluation.FStar.fstar_evaluation import Evaluator as FStarEvaluator
 fstar_eval = FStarEvaluator()
 
 name = "FStar.Math.Lemmas.multiple_modulo_lemma"
-solution = "let multiple_modulo_lemma (a:int) (n:pos) = cancel_mul_mod a n"
+solution = "let multiple_modulo_lemma (a:int) (n:pos) = ()"
 
 result, details = fstar_eval.check_solution(name, solution)
 print("Success:", result)
 print(json.dumps(details, indent=2))
+
+exit()
 
 
 # Verus Evaluation
