@@ -64,8 +64,7 @@ VERUS_NO_THOUGHT_SYSTEM_PROMPT = (
     "behaves exact what is described in the specifications, which is "
     "`requires` and `ensures`. The given verus code is missing proofs. "
     "The assistant only provides the verified rust code inside <answer> "
-    "and </answer> tags. The assistant should not provide any explanation "
-    "or reasoning in the <answer> tag."
+    "and </answer> tags."
 )
 
 FSTAR_NO_THOUGHT_SYSTEM_PROMPT = (
@@ -75,8 +74,7 @@ FSTAR_NO_THOUGHT_SYSTEM_PROMPT = (
     "such as the context, other definitions in the type etc., and "
     "the Assistant writes the definition so that the input type is satisfied. "
     "The assistant only provides the complete satisfyable definition of the "
-    "term inside <answer> and </answer> tags. The assistant should not "
-    "provide any explanation or reasoning in the <answer> tag."   
+    "term inside <answer> and </answer> tags."   
 )
 
 FSTAR_COT_SYSTEM_PROMPT = (
