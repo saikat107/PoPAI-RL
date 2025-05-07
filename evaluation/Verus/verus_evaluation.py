@@ -117,6 +117,24 @@ def evaluation_function(truths):
     return metrics
 
 
+def sanitize_code_block(s: str) -> str:
+    s = s.strip()
+    # Try matching a full triple backtick block (with or without language)
+    triple_block = re.search(r'```(?:[a-zA-Z0-9_+-]*)?\n?(.*?)\n?```', s, re.DOTALL)
+    if triple_block:
+        return triple_block.group(1).strip()
+
+    # Try extracting content from a triple backtick start without a proper closing
+    triple_open = re.search(r'```(?:[a-zA-Z0-9_+-]*)?\n?(.*)', s, re.DOTALL)
+    if triple_open:
+        return triple_open.group(1).strip()
+
+    # Try inline code with single backticks (first occurrence only)
+    inline_code = re.search(r'`([^`\n]+)`', s)
+    if inline_code:
+        return inline_code.group(1).strip()
+    return s
+
 def remove_block_comment(response):
     if "(*" in response:
         first_part = response[: response.index("(*")]
@@ -149,6 +167,7 @@ def sanitize(response):
         response = response[(response.rindex("<answer>") + len("<answer>")) :]
         if "</answer>" in response:
             response = response[: response.index("</answer>")]
+    response = sanitize_code_block(response)
     response = remove_block_comment(response)
     response = remove_line_comment(response)
     return response
