@@ -83,7 +83,8 @@ def analyze_solution(
     timeout: int,
 ):
     name = entry["name"]
-    if solution.strip() == "":
+    solution = sanitize(solution)
+    if solution is None or solution.strip() == "":
         result = False
         detail = {
             "kind": "none",
@@ -135,30 +136,34 @@ def sanitize_code_block(s: str) -> str:
         return inline_code.group(1).strip()
     return s
 
-def remove_block_comment(response):
-    if "(*" in response:
-        first_part = response[: response.index("(*")]
-        second_part = response[response.index("(*") + 2 :]
-        if "*)" in second_part:
-            remaining = second_part[second_part.index("*)") + 2 :]
+def remove_block_comment(code: str) -> str:
+    result = []
+    i = 0
+    depth = 0
+    while i < len(code):
+        if code[i:i+2] == '/*':
+            depth += 1
+            i += 2
+        elif code[i:i+2] == '*/' and depth > 0:
+            depth -= 1
+            i += 2
+        elif depth == 0:
+            result.append(code[i])
+            i += 1
         else:
-            remaining = ""
-        response = first_part + remaining
-        return remove_block_comment(response)
-    return response
+            i += 1
+    return ''.join(result)
 
 
-def remove_line_comment(response):
-    lines = response.split("\n")
-    taken_lines = []
-    for l in lines:
-        if "//" in l:
-            l = l[: l.index("//")]
-            if l.strip() != "":
-                taken_lines.append(l)
-        else:
-            taken_lines.append(l)
-    return "\n".join(taken_lines)
+def remove_line_comment(code: str) -> str:
+    lines = code.splitlines()
+    cleaned = []
+    for line in lines:
+        idx = line.find('//')
+        if idx != -1:
+            line = line[:idx]
+        cleaned.append(line.rstrip())
+    return '\n'.join(cleaned)
 
 
 def sanitize(response):
