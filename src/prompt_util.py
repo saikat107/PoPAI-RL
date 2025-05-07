@@ -32,7 +32,7 @@ FSTAR_THOUGHT_SYSTEM_PROMPT = (
     "</think><answer> answer here </answer>."
     " Inside the <think> tag, the assistant provides a list of reasoning steps "
     "that it will take to arrive at the answer. "
-    "In the <answer> tag, the assistant only provides the complete "
+    "Finally, within the <answer> and </answer> tags, the assistant only provides the complete "
     "satisfyable definition of the term. "
 )
 
@@ -50,7 +50,7 @@ VERUS_THOUGHT_SYSTEM_PROMPT = (
     "<answer> </answer> tags, respectively, i.e., <think> reasoning process here "
     "</think><answer> answer here </answer>. Inside the <think> tag, the assistant "
     "provides a list of reasoning steps that it will take to arrive at the answer. "
-    "In the <answer> tag, the assistant only provides the "
+    "Finally, within the <answer> and </answer> tags, the assistant only provides the "
     "verified rust code will all the necessary proofs assertions and loop invariants. "
 )
 
@@ -84,7 +84,7 @@ FSTAR_COT_SYSTEM_PROMPT = (
     "    </steps> \n"
     "</think> \n"
     "Note that these steps should in such a way that a human can follow them. "
-    "In the <answer> tag, the assistant only provides the complete "
+    "Finally, within the <answer> and </answer> tags, the assistant only provides the complete "
     "satisfyable definition of the term. "
 )
 
@@ -121,7 +121,7 @@ VERUS_COT_SYSTEM_PROMPT = (
     "    </steps> \n"
     "</think> \n"
     "Note that these steps should in such a way that a human can follow them. "
-    "In the <answer> tag, the assistant only provides the "
+    "Finally, within the <answer> and </answer> tags, the assistant only provides the "
     "verified rust code will all the necessary proofs assertions and loop invariants. "
 )
 
@@ -167,7 +167,8 @@ FSTAR_EMULATE_SYSTEM_PROMPT = (
     "</think> \n"
     "Note that these steps should in such a way that a human can follow them. "
     "Ideally, at the last step of the emulation, the assistant should be able to "
-    "provide the final definition. Fianlly, in the <answer> tag, the assistant only "
+    "provide the final definition. "
+    "Finally, within the <answer> and </answer> tags, the assistant only "
     "provides the complete satisfyable definition of the term. "
 )
 
@@ -216,7 +217,8 @@ VERUS_EMULATE_SYSTEM_PROMPT = (
     "</think> \n"
     "Note that these steps should in such a way that a human can follow them. "
     "Ideally, at the last step of the emulation, the assistant should be able to "
-    "provide the final definition. Fianlly, in the <answer> tag, "
+    "provide the final definition. "
+    "Finally, within the <answer> and </answer> tags, "
     "the assistant only provides the "
     "verified rust code will all the necessary proofs assertions and loop invariants. "
 )

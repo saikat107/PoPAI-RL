@@ -797,7 +797,7 @@ def remove_line_comment(response):
 def sanitize(response):
     # If there is a <ansewer> </answer> tag, only take what is in between
     if "<answer>" in response:
-        response = response[response.index("<answer>") + 8 :]
+        response = response[(response.rindex("<answer>") + len("<answer>")) :]
         if "</answer>" in response:
             response = response[: response.index("</answer>")]
     response = remove_block_comment(response)
@@ -916,7 +916,7 @@ def extract_inside_a_pattern(texts, tag):
     end_tag = f"</{tag}>"
     for text in texts:
         if begin_tag in text:
-            text = text[text.index(begin_tag) + len(begin_tag) :]
+            text = text[text.rindex(begin_tag) + len(begin_tag) :] # take the last one
             if end_tag in text:
                 text = text[: text.index(end_tag)]
         extractions.append(text.strip())
@@ -957,7 +957,8 @@ def find_solution(entry, solution_key):
                 if not isinstance(responses, dict) and isinstance(responses, list):
                     responses = responses[0]
                 responses = responses[k]
-            assert isinstance(responses, list) or isinstance(responses, str), f"Expected list or string, got {type(responses)}"
+            assert isinstance(responses, list) or isinstance(responses, str), \
+                f"Expected list or string, got {type(responses)}"
         if isinstance(responses, str):
             responses = [responses]
         return responses

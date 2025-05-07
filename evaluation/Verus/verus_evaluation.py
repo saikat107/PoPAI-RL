@@ -146,7 +146,7 @@ def remove_line_comment(response):
 def sanitize(response):
     # If there is a <ansewer> </answer> tag, only take what is in between
     if "<answer>" in response:
-        response = response[response.index("<answer>") + 8 :]
+        response = response[(response.rindex("<answer>") + len("<answer>")) :]
         if "</answer>" in response:
             response = response[: response.index("</answer>")]
     response = remove_block_comment(response)
@@ -243,7 +243,7 @@ def extract_inside_a_pattern(texts, tag):
     end_tag = f"</{tag}>"
     for text in texts:
         if begin_tag in text:
-            text = text[text.index(begin_tag) + len(begin_tag) :]
+            text = text[text.rindex(begin_tag) + len(begin_tag) :]
             if end_tag in text:
                 text = text[: text.index(end_tag)]
         extractions.append(text.strip())
