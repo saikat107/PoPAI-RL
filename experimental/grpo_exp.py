@@ -81,7 +81,6 @@ training_args = GRPOConfig(
     # Parameters related to reporting and saving
     report_to=["tensorboard"],
     logging_steps=1,
-    push_to_hub=True,
     save_strategy="steps",
     save_steps=1,
 )
