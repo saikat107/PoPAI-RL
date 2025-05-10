@@ -28,7 +28,7 @@ print(train_dataset)
 import torch
 from transformers import AutoModelForCausalLM
 
-model_id = "Qwen/Qwen2-0.5B-Instruct"
+model_id = "Qwen/QwQ-32B"
 model = AutoModelForCausalLM.from_pretrained(
     model_id,
 )
@@ -66,9 +66,10 @@ from trl import GRPOConfig
 
 # Configure training arguments using GRPOConfig
 training_args = GRPOConfig(
-    output_dir="Qwen2-0.5B-GRPO-test",
+    output_dir="./results",
     learning_rate=1e-5,
     remove_unused_columns=False, # to access the solution column in accuracy_reward
+    per_device_train_batch_size=2,
     gradient_accumulation_steps=16,
     num_train_epochs=1,
     bf16=True,
