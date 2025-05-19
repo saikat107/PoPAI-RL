@@ -1,3 +1,6 @@
+from multiprocessing import Pool
+from tqdm import tqdm
+
 FSTAR_NO_THOUGHT_SYSTEM_PROMPT = (
     "Suppose you are a F* programming assistant. The user asks to "
     "write the definition of a F* term from its type declaration. "
@@ -224,12 +227,16 @@ VERUS_EMULATE_SYSTEM_PROMPT = (
 )
 
 
-def populate_system_prompt(_data, which_input, which_prompt):
-    for d in _data:
-        if which_input in d:
-            prompt = d[which_input]
+class SystemPromptPopulator:
+    def __init__(self, input_field, prompt_type):
+        self.input_field = input_field
+        self.prompt_type = prompt_type
+    
+    def add_system_prompt(self, d):
+        if self.input_field in d:
+            prompt = d[self.input_field]
         else:
-            raise ValueError(f"Prompt not found in test data. Expected key: {which_input}.")
+            raise ValueError(f"Prompt not found in test data. Expected key: {self.input_field}.")
         if isinstance(prompt, str):
             prompt = [
                 {
@@ -248,7 +255,7 @@ def populate_system_prompt(_data, which_input, which_prompt):
                 ]
             else:
                 raise ValueError(
-                    f"A dictionary is provided as prompt with {promtp.keys()};"
+                    f"A dictionary is provided as prompt with {prompt.keys()};"
                     "Expeted Prompt Dictionary format: {'role': 'user', 'content': 'prompt'}"
                 )
         elif isinstance(prompt, list):
@@ -257,21 +264,28 @@ def populate_system_prompt(_data, which_input, which_prompt):
                 "list should be a system prompt."
             )
         is_a_verus_example = d["name"].startswith("VERUS")
-        if which_prompt == "no_thought":
+        if self.prompt_type == "no_thought":
             prompt[0]["content"] = (
                 VERUS_NO_THOUGHT_SYSTEM_PROMPT if is_a_verus_example else FSTAR_NO_THOUGHT_SYSTEM_PROMPT
             )
-        elif which_prompt == "thought":
+        elif self.prompt_type == "thought":
             prompt[0]["content"] = (
                 VERUS_THOUGHT_SYSTEM_PROMPT if is_a_verus_example else FSTAR_THOUGHT_SYSTEM_PROMPT
             )
-        elif which_prompt == "reflection":
+        elif self.prompt_type == "reflection":
             prompt[0]["content"] = (
                 VERUS_COT_SYSTEM_PROMPT if is_a_verus_example else FSTAR_COT_SYSTEM_PROMPT
             )
-        elif which_prompt == "emulation":
+        elif self.prompt_type == "emulation":
             prompt[0]["content"] = (
                 VERUS_EMULATE_SYSTEM_PROMPT if is_a_verus_example else FSTAR_EMULATE_SYSTEM_PROMPT
             )
-        d[which_prompt] = prompt
-    return _data
+        d[self.prompt_type] = prompt
+        return d
+    
+    def populate_system_prompt(self, _data, n_workers=1):
+        mapper = map if n_workers == 1 else Pool(n_workers).imap
+        output = []
+        for d in tqdm(mapper(self.add_system_prompt, _data), total=len(_data), desc="Populating system prompts"):
+            output.append(d)
+        return output

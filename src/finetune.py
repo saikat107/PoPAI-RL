@@ -6,11 +6,12 @@ from transformers import (
     AutoTokenizer,
 )
 import numpy as np
-
+import json
 import torch
 import random
 from trl import SFTConfig, SFTTrainer
 import argparse
+from prompt_util import SystemPromptPopulator
 
 def set_seed(seed):
     torch.manual_seed(seed)
@@ -20,7 +21,14 @@ def set_seed(seed):
 
 parser = argparse.ArgumentParser(description="Fine-tune a causal language model.")
 parser.add_argument("--model_name", type=str, default="Qwen/QwQ-32B", help="Model name or path.")
-parser.add_argument("--no_thought_prompt", action="store_true", help="Use no thought prompt.")
+parser.add_argument(
+    "--input_field", type=str, default="prompt", help="The input to use for generation.",
+)
+parser.add_argument(
+    "--prompt_type", type=str, default="thought", 
+    help="The prompt to use for generation. Options: 'no_thought', 'thought', 'reflection', 'emulation'.",
+    choices=['no_thought', "thought", "reflection", "emulation", "verification"],
+)
 parser.add_argument("--max_seq_length", type=int, default=16000, help="Maximum sequence length.")
 parser.add_argument("--output_dir", type=str, default="./results", help="Output directory.")
 parser.add_argument("--per_device_train_batch_size", type=int, default=2, help="Batch size per device.")
@@ -57,8 +65,9 @@ max_steps = args.max_steps
 warmup_ratio = args.warmup_ratio
 lr_scheduler_type = args.lr_scheduler_type
 
-if args.no_thought_prompt:
-    output_dir = os.path.join(output_dir, "no_thought_prompt")
+if not output_dir.rstrip("/").endswith(args.prompt_type):
+    output_dir = os.path.join(output_dir, args.prompt_type)
+print("Output directory:", output_dir)
 os.makedirs(output_dir, exist_ok=True)
 
 
@@ -75,44 +84,10 @@ model = AutoModelForCausalLM.from_pretrained(
     torch_dtype=data_type,
 )
 
-VERUS_NO_THOUGHT_SYSTEM_PROMPT = (
-    "You are an experienced formal language programming assistant. "
-    "You are very familiar with Verus, which is a tool for verifying "
-    "the correctness of code written in Rust. Your mission is to write "
-    "correct proof code, including loop invariants and assertions to "
-    "the given Rust code, so that Verus can verify the give function "
-    "behaves exact what is described in the specifications, which is "
-    "`requires` and `ensures`. The given verus code is missing proofs. "
-    "The assistant only provides the verified rust code inside <answer> "
-    "and </answer> tags. The assistant should not provide any explanation "
-    "or reasoning in the <answer> tag."
-)
-
-FSTAR_NO_THOUGHT_SYSTEM_PROMPT = (
-    "Suppose you are a F* programming assistant. The user asks to "
-    "write the definition of a F* term from its type declaration. "
-    "The user provides the type declaration and some other information, "
-    "such as the context, other definitions in the type etc., and "
-    "the Assistant writes the definition so that the input type is satisfied. "
-    "The assistant only provides the complete satisfyable definition of the "
-    "term inside <answer> and </answer> tags. The assistant should not "
-    "provide any explanation or reasoning in the <answer> tag."   
-)
-
-def appropriate_prompt(name, prompt):
-    global args
-    if not args.no_thought_prompt:
-        return prompt
-    else:
-        prompt[0]["content"] = (
-            VERUS_NO_THOUGHT_SYSTEM_PROMPT if name.startswith("VERUS") else FSTAR_NO_THOUGHT_SYSTEM_PROMPT
-        )
-        return prompt
-
 
 def appropriate_defn(name, defn):
     global args
-    if not args.no_thought_prompt:
+    if args.prompt_type != "no_thought":
         return defn
     else:
         content = defn[0]["content"]
@@ -131,10 +106,16 @@ def which_language(name):
         return "verus"
     else:
         return "fstar"
+
+prompt_populator = SystemPromptPopulator(
+    input_field=args.input_field,
+    prompt_type=args.prompt_type,
+)
     
 def format_text(example):
+    example = prompt_populator.add_system_prompt(example)
     messages = (
-        appropriate_prompt(example["name"], example["prompt"]) + 
+        example[args.prompt_type] + 
         appropriate_defn(example["name"], example["completion"])
     )
     text = tokenizer.apply_chat_template(messages, tokenize=False)
@@ -185,7 +166,14 @@ training_arguments = SFTConfig(
 try:
     if torch.distributed.get_rank() == 0:
         print(model)
-except:
+        print("=================================")
+        print(train_data[0].keys())
+        print("=================================")
+        print(json.dumps(train_data[0][args.prompt_type], indent=2))
+        print("=================================")
+except Exception as e:
+    import traceback
+    traceback.print_exc()
     pass
     
     

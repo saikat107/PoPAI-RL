@@ -4,7 +4,7 @@ from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
 from tqdm import tqdm
 import json
-from prompt_util import populate_system_prompt
+from prompt_util import SystemPromptPopulator
 
 
 parser = argparse.ArgumentParser(description="Generate text using a language model.")
@@ -18,12 +18,12 @@ parser.add_argument(
     "--test_file", type=str, required=True, help="Path to the test file containing the input prompts for generation.",
 )
 parser.add_argument(
-    "--which_prompt", type=str, default="thought", 
+    "--prompt_type", type=str, default="thought", 
     help="The prompt to use for generation. Options: 'no_thought', 'thought', 'reflection', 'emulation'.",
     choices=['no_thought', "thought", "reflection", "emulation", "verification"],
 )
 parser.add_argument(
-    "--which_input", type=str, default="prompt", help="The input to use for generation.",
+    "--input_field", type=str, default="prompt", help="The input to use for generation.",
 )
 parser.add_argument(
     "--output_dir", type=str, default=None, help="Directory to save the generated outputs.", required=True
@@ -58,7 +58,7 @@ args = parser.parse_args()
 assert args.model_name or args.model_path, "Either --model_name or --model_path must be provided."
 assert not (args.model_name and args.model_path), "Only one of --model_name or --model_path can be provided."
 
-if args.which_prompt == "verification":
+if args.prompt_type == "verification":
     raise NotImplementedError(
         "Verification prompt is not implemented yet. Please use one of the other prompts: "
         "'no_thought', 'thought', 'reflection', or 'emulation'."
@@ -79,13 +79,14 @@ if os.path.exists(result_path):
 if test_data is None:
     print(f"Loading test data from {args.test_file}.")
     test_data = json.load(open(args.test_file, "r"))
-    test_data = populate_system_prompt(
-        _data=test_data, 
-        which_input=args.which_input, 
-        which_prompt=args.which_prompt
+    prompt_populator = SystemPromptPopulator(
+        input_field=args.input_field,
+        prompt_type=args.prompt_type,
     )
+    test_data = prompt_populator.populate_system_prompt(test_data, n_workers=10)
 
-tokenizer = AutoTokenizer.from_pretrained(args.model_name if args.model_name is not None else args.model_path)
+tokenizer = AutoTokenizer.from_pretrained(
+    args.model_name if args.model_name is not None else args.model_path)
 
 llm = LLM(
     model=args.model_name if args.model_name is not None else args.model_path,
@@ -101,7 +102,7 @@ sampling_params = SamplingParams(
 )
 
 for ti, test in enumerate(tqdm(test_data)):
-    prompt = tokenizer.apply_chat_template(test[args.which_prompt], tokenize=False)
+    prompt = tokenizer.apply_chat_template(test[args.prompt_type], tokenize=False)
     request = {
         "id": f'{ti}',
         "prompt": prompt,
@@ -118,7 +119,7 @@ for ti, test in enumerate(tqdm(test_data)):
             {
                 "model_name": args.model_name,
                 "model_path": args.model_path,
-                "which_prompt": args.which_prompt,
+                "prompt_type": args.prompt_type,
                 "responses": generations,
             }
         )
