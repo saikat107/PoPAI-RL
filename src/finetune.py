@@ -182,8 +182,11 @@ training_arguments = SFTConfig(
 )
 
 # print model is local_rank 0
-if torch.distributed.get_rank() == 0:
-    print(model)
+try:
+    if torch.distributed.get_rank() == 0:
+        print(model)
+except:
+    pass
     
     
 trainer = SFTTrainer(
