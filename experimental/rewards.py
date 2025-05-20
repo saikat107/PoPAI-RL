@@ -1,3 +1,8 @@
+import openai
+import nltk
+from nltk.tokenize import word_tokenize
+from textwrap import dedent
+import re
 problem_definition = """
 The type of the term is:
 ```
@@ -104,21 +109,17 @@ resp = """"<think>
     let snd = fun (x, y) -> y
 </answer>"""
 
-import re
-from textwrap import dedent
-
-from nltk.tokenize import word_tokenize
-import nltk
-import openai
 
 # Ensure the tokenizer resources are available
 nltk.download('punkt', quiet=True)
 nltk.download('punkt_tab', quiet=True)
 
+
 def sanitize(text):
     lines = text.split("\n")
     lines = [line.strip() for line in lines if line.strip()]
     return "\n".join(lines)
+
 
 def step_answer_match(step, answer):
     a_tokens = word_tokenize(step)
@@ -136,6 +137,7 @@ def step_answer_match(step, answer):
                 dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
     l = dp[len(a_tokens)][len(b_tokens)]
     return (float(l) / len(b_tokens)) if len(b_tokens) > 0 else 0
+
 
 def parse_think_xml_with_optional_blocks(xml_text: str):
     xml_text = dedent(xml_text.strip())
@@ -161,13 +163,14 @@ def parse_think_xml_with_optional_blocks(xml_text: str):
 
 
 class FormattedResponse:
-    def __init__(self, problem_prefect:str, problem_desciption:str, response: str):
+    def __init__(self, problem_prefect: str, problem_desciption: str, response: str):
         if problem_prefect == "fstar":
             self.problem_prefect = "The problem is about synthesizing a verifiable definition for a F* term given the type of the term."
         elif problem_prefect == "verus":
             self.problem_prefect = "The problem is about synthesizing verified rust code with necessary invariants and assertion given a rust code with specification."
         else:
-            raise ValueError("Invalid problem prefix. Expected 'fstar' or 'verus'.")
+            raise ValueError(
+                "Invalid problem prefix. Expected 'fstar' or 'verus'.")
         self.problem_description = problem_desciption
         self.original_text = response
         self.reflection = ""
@@ -180,27 +183,27 @@ class FormattedResponse:
         self.steps = result["steps"]
         self.emulation = result["emulation"]
         self.answer = result["answer"]
-        self.client = openai.OpenAI(base_url="http://localhost:8000/v1", api_key="sk-")
+        self.client = openai.OpenAI(
+            base_url="http://localhost:8000/v1", api_key="sk-")
         self.model = self.client.models.list().data[0].id
 
     def __str__(self):
         ret_val = f"""Reflection:
-{self.reflection}
-        
-Steps:
-=======================================
-"""
+        {self.reflection}
+                
+        Steps:
+        =======================================
+        """
         for si, step in enumerate(self.steps):
             ret_val += f"Step {si + 1}: {step}\n"
-        
         ret_val += f"""Emulation:
-=======================================
-"""
+        =======================================
+        """
         for ei, emu in enumerate(self.emulation):
             ret_val += f"Emulation {ei + 1}: {emu}\n"
         ret_val += f"""Answer:
-=======================================
-{self.answer}"""
+        =======================================
+        {self.answer}"""
         return ret_val
 
     def is_well_formed(self, reflection_expected: bool = False, steps_expected: bool = False, emulation_expected: bool = False) -> bool:
@@ -216,10 +219,10 @@ Steps:
         if self.answer.strip() == "":
             return False
         return True
-    
+
     def does_steps_match_emulation(self) -> bool:
         return len(self.steps) == len(self.emulation)
-    
+
     def answer_matches_steps(self) -> float:
         """
         Check if the answer matches the steps.
@@ -227,7 +230,7 @@ Steps:
         return step_answer_match(
             step=self.emulation[-1], answer=self.answer
         ) if len(self.emulation) > 0 and self.answer != "" else 0.0
-    
+
     def find_score_in_response(self, response_text: str) -> float:
         # Score can be in the format of <score> float_score </score> format
         # or it is a floating point number after the last </think> tag
@@ -241,7 +244,7 @@ Steps:
                 return float(last_number_match.group(0))
             else:
                 raise ValueError("No score found in the response text.")
-            
+
     def call_model_with_retry(self, prompt, max_trial=10, temparature=0.0):
         while max_trial > 0:
             response = self.client.chat.completions.create(
@@ -263,7 +266,7 @@ Steps:
                 temparature += 0.1
 
         return 0.0
-    
+
     def step_emulation_conformity_score(self) -> float:
         """
         Check if the steps and emulation conform to each other.
@@ -275,23 +278,24 @@ Steps:
                 "content": "You are a helpful assistant that is experiences with logical reasoning. The user is trying to solve a problem related to synthesizing a verifiable code from a given code or specification. In order to do so, the user came up with a list of steps. The user also has simulated these steps in their mind and articulated the simulation in a natural language. The user is asking you to check if the steps and the emulation are conforming to each other. Please answer with a score between 0 and 1, where 0 means they do not conform at all and 1 means they are exactly the same. You should first think about the conformity between the steps and the emulation. If there is a conformity, think about the reasoning behind it. If there is a disagreement, think about the reason why they do not conform. Then, give a score between 0 and 1. You should format your answer in <think> provide detailed reasoning here </think> <score> score goes here </score> format. Do not include any other text in your answer.",
             }
         ]
-        user_prompt = f"{self.problem_prefect}\n\n" + self.problem_description + "\n"
+        user_prompt = f"{self.problem_prefect}\n\n" + \
+            self.problem_description + "\n"
         user_prompt += "\nThe steps are: "
         for i, step in enumerate(self.steps):
             user_prompt += f"\nStep {i + 1}: {step}"
 
         user_prompt += "\nThe user simulation of these steps are: "
         for i, emu in enumerate(self.emulation):
-            user_prompt += f"\nSimulation {i + 1}: {emu}"   
+            user_prompt += f"\nSimulation {i + 1}: {emu}"
 
         prompt.append(
             {
                 "role": "user",
                 "content": user_prompt,
             }
-        ) 
+        )
         return self.call_model_with_retry(prompt)
-    
+
     def step_answer_conformity_score(self) -> float:
         # Here we will check if given a problem definition, and list of steps, if we could reach the answer. If we can exactly reach the answer, we will return 1.0, if we can reach a similar answer, we will return a score between 0 and 1. If we cannot reach the answer at all, we will return 0.0.
         # Create a prompt for the model
@@ -301,7 +305,8 @@ Steps:
                 "content": "You are a helpful assistant that is experiences with logical reasoning. The user is trying to solve a problem related to synthesizing a verifiable code from a given code or specification. In order to do so, the user came up with a list of steps. The user alse has prepared an answer. The user is asking you to check if following the steps, the user could actually reach the answer. Please answer with a score between 0 and 1, where 0 means you cannot derive the answer following the steps and 1 means you can derive the answer by following the steps. While scoring the steps, you should think about the logical deduction for each of the steps and how each of these step transform the problem. You should deeply reason about why the list of given steps are correct or not to reach the answer. Then, give a score between 0 and 1. You should format your answer in <think> provide detailed reasoning here </think> <score> score goes here </score> format. Do not include any other text in your answer.",
             }
         ]
-        user_prompt = f"{self.problem_prefect}\n\n" + self.problem_description + "\n"
+        user_prompt = f"{self.problem_prefect}\n\n" + \
+            self.problem_description + "\n"
         user_prompt += "\nThe steps are: "
         for i, step in enumerate(self.steps):
             user_prompt += f"\nStep {i + 1}: {step}"
@@ -317,15 +322,21 @@ Steps:
 
 
 # Example usage
-fmt = FormattedResponse(problem_prefect="fstar", problem_desciption=problem_definition, response=resp)
+fmt = FormattedResponse(problem_prefect="fstar",
+                        problem_desciption=problem_definition, response=resp)
 # print(fmt)
-print("Is well-formed (Reflection Only): ", fmt.is_well_formed(reflection_expected=True))
+print("Is well-formed (Reflection Only): ",
+      fmt.is_well_formed(reflection_expected=True))
 print("Is well-formed (Steps Only): ", fmt.is_well_formed(steps_expected=True))
-print("Is well-formed (Emulation Only): ", fmt.is_well_formed(emulation_expected=True))
-print("Is well-formed (Reflection + Steps): ", fmt.is_well_formed(reflection_expected=True, steps_expected=True))
-print("Is well-formed (Reflection + Emulation): ", fmt.is_well_formed(reflection_expected=True, emulation_expected=True))
-print("Is well-formed (Steps + Emulation): ", fmt.is_well_formed(steps_expected=True, emulation_expected=True))
-print("Is well-formed (All): ", fmt.is_well_formed(reflection_expected=True, steps_expected=True, emulation_expected=True))
+print("Is well-formed (Emulation Only): ",
+      fmt.is_well_formed(emulation_expected=True))
+print("Is well-formed (Reflection + Steps): ",
+      fmt.is_well_formed(reflection_expected=True, steps_expected=True))
+print("Is well-formed (Reflection + Emulation): ",
+      fmt.is_well_formed(reflection_expected=True, emulation_expected=True))
+print("Is well-formed (Steps + Emulation): ",
+      fmt.is_well_formed(steps_expected=True, emulation_expected=True))
+print("Is well-formed (All): ", fmt.is_well_formed(reflection_expected=True,
+      steps_expected=True, emulation_expected=True))
 print("Step Emulation match emulation:", fmt.step_emulation_conformity_score())
 print("Step Answer conformity check:", fmt.step_answer_conformity_score())
-
