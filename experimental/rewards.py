@@ -1,119 +1,118 @@
-resp = """<think>
+problem_definition = """
+The type of the term is:
+```
+val snd : x: (_ * _) -> _
+```
+#####
+
+The file context where I am writing this term is:
+```
+module Duplex.PCM
+
+open FStar.PCM
+
+open Steel.Channel.Protocol
+module P = FStar.Preorder
+module R = FStar.ReflexiveTransitiveClosure
+
+
+open FStar.Ghost
+open Steel.Memory
+open Steel.Effect.Atomic
+open Steel.Effect
+open Steel.PCMReference
+module Mem = Steel.Memory
+module PR = Steel.PCMReference
+
+#####
+
+A premise is other terms either defined in the same file or imported from other files.
+Here are complete type and definition of the premises in the input type:
+#####
+
+Here are complete type and definition of the other premises. These premises are used to define the terms that make up the current input type:
+#####
+
+Here are some related examples with both the type and corresponding definition:
+// Example 2:
+
+val snd : x: (_ * _) -> _
+
+let snd x = snd x
+
+// End of example 2
+
+// Example 3:
+
+val dprot' : Type
+
+let dprot' = protocol unit
+
+// End of example 3
+
+#####
+
+Given the above information, please provide the definition of the following type:
+```
+val snd : x: (_ * _) -> _
+```
+
+
+Start the definition with 
+```
+let snd =
+```
+"""
+
+resp = """"<think>
     <reflection>
-        The high level strategy is to synthesize a verifiable definition for the lemma `serialize_get_protected_bits`, which ensures that the serialized header's first byte contains the protected bits correctly. The lemma requires two parts: proving the serialized sequence is non-empty and showing the protected bits match the bitfield extracted from the first byte.
-
-        First, I need to recall that the `serialize_header` function produces a sequence of bytes starting with the first byte (from `first_byte_of_header`). The first byte's structure depends on whether the header is short or long, and the protected bits are embedded in specific bits of this first byte.
-
-        The key steps involve using existing lemmas and functions to break down the problem. The `serialize_header_eq` lemma provides an equation for the serialized header, which includes the first byte and the body. This can be used to show that the first byte is indeed the head of the sequence.
-
-        Next, using the `first_byte` structure defined in the context, we can analyze how the protected bits are encoded. For a short header, the protected bits occupy 5 bits starting at 0, while for a long header, they occupy 4 bits. The `LPB.get_bitfield` function can extract these bits from the first byte of the serialized sequence.
-
-        To ensure the sequence length is greater than zero, since the first byte is always present, `Seq.length sq > 0` holds because `LP.serialize` of the header includes at least the first byte.
-
-        The protected bits extraction must align with the `get_protected_bits` function's return value, which is directly the protected bits field in both header variants. Thus, connecting the serialized first byte's bitfield to this field is crucial.
-
-        I should also leverage existing definitions like `first_byte_of_header` and `mk_header` to ensure that the first byte's structure correctly encodes the protected bits. Additionally, using the `LPB.get_bitfield` properties from the premises will help equate the extracted bits with the header's protected bits.
+        The high level strategy is to synthesize a verifiable definition for the F* term `snd`, which has the type `x: (_ * _) -> _`. Since the provided context includes various modules and definitions, I need to ensure that the solution adheres to F*'s syntax and any specific conventions used in the context. However, the type signature of `snd` is straightforward\u2014it should take a pair and return its second component. The standard F* library already has a `snd` function, but if we need to define it explicitly here, it can be done simply by pattern matching or using existing functions. The challenge here is to ensure that the definition is compatible with the given context and any type inference requirements. Since the return type is inferred (`_`), the function must correctly return the second element of the pair without any additional constraints from the context provided. The context includes many protocol and channel-related definitions, but since the `snd` function is generic, it should work with any pair type. Therefore, the solution is to directly implement the standard `snd` function.
     </reflection>
     <steps>
         <step>
-            Start by invoking `serialize_header_eq` for the given `short_dcid_len` and `h`. This lemma gives an equation for the serialized header as the concatenation of the first byte (serialized via `LP.serialize_u8`) and the body's serialization. This ensures the first byte is the head of the sequence `sq`.
+            Identify that the function `snd` is supposed to return the second element of a pair.
         </step>
         <step>
-            Extract the first byte from the serialized sequence `sq` using `Seq.head`, which is valid since the length is proven to be >0 via the first part of the lemma's assertion.
+            Recall that in F*, pairs are tuples and the second element can be accessed via pattern matching or using the built-in `snd` function.
+        </step>
+        <step>
+            Since the problem requires writing the definition explicitly (even though F* might have a built-in), we need to define it using a lambda or a function that extracts the second component.
+        </step>
+        <step>
+            Check if there are any constraints in the provided context that might affect the definition. The context includes many protocol definitions, but the `snd` function here is generic and doesn't depend on them.
+        </step>
+        <step>
+            Decide to write the definition using pattern matching for clarity and correctness.
         </step>
     </steps>
-
     <emulation>
-    <step>
-       ldskjfals
-    </step>
-
-    <step>
-        The first byte's value is synthesized using `LPB.synth_bitsum'_recip` and `first_byte_of_header`. This gives the first byte's bit representation, which is crucial for the next steps.
-        The first byte is then serialized using `LP.serialize_u8`, and we assert that the length of the serialized sequence is greater than zero, confirming that the first byte is indeed present.
-
-        Next, I need to extract the protected bits from the first byte. Depending on whether the header is short or long, the protected bits occupy different bit positions. For a short header, they are in bits 0-4, while for a long header, they are in bits 4-8. The `LPB.get_bitfield` function will help extract these bits.
-        The extracted bits are then compared with the protected bits in the header `h`. This is done by checking if the first byte's value matches the expected enum representation for short or long headers. The assertions ensure that the extracted bits align with the header's protected bits.
-
-        Finally, I need to ensure that the assertions hold true for both cases of headers (short and long). This will involve checking the bit positions and values accordingly.
-        The final assertion checks that the extracted protected bits from the first byte match the expected value in the header `h`. This completes the verification of the lemma.
-    
-    let serialize_get_protected_bits (short_dcid_len: short_dcid_len_t) (h: header' short_dcid_len)
-    : Lemma
-    (let sq = LP.serialize (serialize_header short_dcid_len) h in
-      Seq.length sq > 0 /\
-      get_protected_bits h == LPB.uint8.LPB.get_bitfield (Seq.head sq) 0 (if PShort? h then 5 else 4)) =
-  let sq = LP.serialize (serialize_header short_dcid_len) h in
-  serialize_header_eq short_dcid_len h;
-  let first_byte_val = LPB.synth_bitsum'_recip first_byte (first_byte_of_header short_dcid_len h) in
-  let first_byte_in_seq = LP.serialize_u8 first_byte_val in
-  assert (sq = first_byte_in_seq `Seq.append` LP.serialize (serialize_header_body short_dcid_len (LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len h))) (mk_header_body short_dcid_len (first_byte_of_header short_dcid_len h) h));
-  assert (Seq.length first_byte_in_seq = 1);
-  assert (Seq.length sq = 1 + (Seq.length (LP.serialize (serialize_header_body ...) ...)));
-  assert (Seq.length sq > 0);
-  let first_byte = Seq.head sq in
-  let protected_bits_length = if PShort? h then 5 else 4 in
-  let extracted_pb = LPB.uint8.LPB.get_bitfield first_byte 0 protected_bits_length in
-  begin
-    match h with
-    | PShort pb _ _ ->
-        assert (first_byte_val <: U8.t == header_form.Short.enum_repr);
-        assert (LPB.get_bitfield8 first_byte_val 0 5 == pb);
-        assert (extracted_pb == pb)
-    | PLong pb _ _ _ _ ->
-        assert (first_byte_val <: U8.t == header_form.Long.enum_repr);
-        assert (LPB.get_bitfield8 first_byte_val 4 8 == pb);
-        assert (extracted_pb == pb)
-  end;
-  ()
-  end;
-  ()
-    </step>
-        
-</emulation>
-</think>
-
-
-<answer>
-let serialize_get_protected_bits (short_dcid_len: short_dcid_len_t) (h: header' short_dcid_len)
-    : Lemma
-    (let sq = LP.serialize (serialize_header short_dcid_len) h in
-      Seq.length sq > 0 /\
-      get_protected_bits h == LPB.uint8.LPB.get_bitfield (Seq.head sq) 0 (if PShort? h then 5 else 4)) =
-  let sq = LP.serialize (serialize_header short_dcid_len) h in
-  serialize_header_eq short_dcid_len h;
-  let first_byte_val = LPB.synth_bitsum'_recip first_byte (first_byte_of_header short_dcid_len h) in
-  let first_byte_in_seq = LP.serialize_u8 first_byte_val in
-  assert (sq = first_byte_in_seq `Seq.append` LP.serialize (serialize_header_body short_dcid_len (LPB.bitsum'_key_of_t first_byte (first_byte_of_header short_dcid_len h))) (mk_header_body short_dcid_len (first_byte_of_header short_dcid_len h) h));
-  assert (Seq.length first_byte_in_seq = 1);
-  assert (Seq.length sq = 1 + (Seq.length (LP.serialize (serialize_header_body ...) ...)));
-  assert (Seq.length sq > 0);
-  let first_byte = Seq.head sq in
-  let protected_bits_length = if PShort? h then 5 else 4 in
-  let extracted_pb = LPB.uint8.LPB.get_bitfield first_byte 0 protected_bits_length in
-  begin
-    match h with
-    | PShort pb _ _ ->
-        assert (first_byte_val <: U8.t == header_form.Short.enum_repr);
-        assert (LPB.get_bitfield8 first_byte_val 0 5 == pb);
-        assert (extracted_pb == pb)
-    | PLong pb _ _ _ _ ->
-        assert (first_byte_val <: U8.t == header_form.Long.enum_repr);
-        assert (LPB.get_bitfield8 first_byte_val 4 8 == pb);
-        assert (extracted_pb == pb)
-  end;
-  ()
-</answer>"""
+        <step>
+            Starting with the skeleton `let snd = ...`, the function needs to take a pair `x` of any two types.
+        </step>
+        <step>
+            Define the function using a lambda that pattern matches on the pair: `fun (a, b) -> b`.
+        </step>
+        <step>
+            Ensure that the type annotation matches the given type `x: (_ * _) -> _`, which it does since the lambda's type is exactly `('a * 'b) -> 'b`, fitting the universal quantification
+        </step>
+        <step>
+            Verify that no additional F* features (like effects or refinements) are needed here, as the problem doesn't specify any beyond the basic pair decomposition.
+        </step>
+    </emulation>
+    <answer>
+        let snd = fun (a, b) -> a
+    </answer>"""
 
 import re
 from textwrap import dedent
 
 from nltk.tokenize import word_tokenize
 import nltk
-from vllm import LLM
+import openai
 
 # Ensure the tokenizer resources are available
 nltk.download('punkt', quiet=True)
+nltk.download('punkt_tab', quiet=True)
 
 def sanitize(text):
     lines = text.split("\n")
@@ -161,7 +160,14 @@ def parse_think_xml_with_optional_blocks(xml_text: str):
 
 
 class FormattedResponse:
-    def __init__(self, response: str):
+    def __init__(self, problem_prefect:str, problem_desciption:str, response: str):
+        if problem_prefect == "fstar":
+            self.problem_prefect = "The problem is about synthesizing a verifiable definition for a F* term given the type of the term."
+        elif problem_prefect == "verus":
+            self.problem_prefect = "The problem is about synthesizing verified rust code with necessary invariants and assertion given a rust code with specification."
+        else:
+            raise ValueError("Invalid problem prefix. Expected 'fstar' or 'verus'.")
+        self.problem_description = problem_desciption
         self.original_text = response
         self.reflection = ""
         self.steps = []
@@ -173,9 +179,28 @@ class FormattedResponse:
         self.steps = result["steps"]
         self.emulation = result["emulation"]
         self.answer = result["answer"]
+        self.client = openai.OpenAI(base_url="http://localhost:8000/v1", api_key="sk-")
+        self.model = self.client.models.list().data[0].id
 
     def __str__(self):
-        return f"Reflection:\n{self.reflection}\n\n\nSteps:\n====\n{'\n'.join(self.steps)}\n\n\nEmulation:\n====\n{'\n'.join(self.emulation)}\n\n\nAnswer:\n====\n{self.answer}"
+        ret_val = f"""Reflection:
+{self.reflection}
+        
+Steps:
+=======================================
+"""
+        for si, step in enumerate(self.steps):
+            ret_val += f"Step {si + 1}: {step}\n"
+        
+        ret_val += f"""Emulation:
+=======================================
+"""
+        for ei, emu in enumerate(self.emulation):
+            ret_val += f"Emulation {ei + 1}: {emu}\n"
+        ret_val += f"""Answer:
+=======================================
+{self.answer}"""
+        return ret_val
 
     def is_well_formed(self, reflection_expected: bool = False, steps_expected: bool = False, emulation_expected: bool = False) -> bool:
         """
@@ -198,19 +223,96 @@ class FormattedResponse:
         """
         Check if the answer matches the steps.
         """
-        return step_answer_match(step=self.emulation[-1], answer=self.answer) if len(self.emulation) > 0 and self.answer != "" else 0.0
+        return step_answer_match(
+            step=self.emulation[-1], answer=self.answer
+        ) if len(self.emulation) > 0 and self.answer != "" else 0.0
     
-    def step_answer_conformity_match(self) -> float:
-        # We will have to call the 
-        pass
+    def find_score_in_response(self, response_text: str) -> float:
+        # Score can be in the format of <score> float_score </score> format
+        # or it is a floating point number after the last </think> tag
+        score_match = re.search(r"<score>(.*?)</score>", response_text)
+        if score_match:
+            return float(score_match.group(1))
+        else:
+            # If no <score> tag, try to find the last floating point number in the response
+            last_number_match = re.search(r"[-+]?\d*\.\d+|\d+", response_text)
+            if last_number_match:
+                return float(last_number_match.group(0))
+            else:
+                raise ValueError("No score found in the response text.")
+            
+    def call_model_with_retry(self, prompt, max_trial=10, temparature=0.0):
+        while max_trial > 0:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=prompt,
+                max_tokens=5000,
+                temperature=temparature,
+            )
+            response_text = response.choices[0].message.content
+            # Extract the score from the response
+            try:
+                return self.find_score_in_response(response_text)
+            except ValueError as e:
+                max_trial -= 1
+                temparature += 0.1
 
+        return 0.0
     
-        
-        
+    def step_emulation_conformity_score(self) -> float:
+        """
+        Check if the steps and emulation conform to each other.
+        """
+        # Create a prompt for the model
+        prompt = [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant that is experiences with logical reasoning. The user is trying to solve a problem related to synthesizing a verifiable code from a given code or specification. In order to do so, the user came up with a list of steps. The user also has simulated these steps in their mind and articulated the simulation in a natural language. The user is asking you to check if the steps and the emulation are conforming to each other. Please answer with a score between 0 and 1, where 0 means they do not conform at all and 1 means they are exactly the same. You should first think about the conformity between the steps and the emulation. If there is a conformity, think about the reasoning behind it. If there is a disagreement, think about the reason why they do not conform. Then, give a score between 0 and 1. You should format your answer in <think> provide detailed reasoning here </think> <score> score goes here </score> format. Do not include any other text in your answer.",
+            }
+        ]
+        user_prompt = f"{self.problem_prefect}\n\n" + self.problem_description + "\n"
+        user_prompt += "\nThe steps are: "
+        for i, step in enumerate(self.steps):
+            user_prompt += f"\nStep {i + 1}: {step}"
+
+        user_prompt += "\nThe user simulation of these steps are: "
+        for i, emu in enumerate(self.emulation):
+            user_prompt += f"\nSimulation {i + 1}: {emu}"   
+
+        prompt.append(
+            {
+                "role": "user",
+                "content": user_prompt,
+            }
+        ) 
+        return self.call_model_with_retry(prompt)
+    
+    def step_answer_conformity_score(self) -> float:
+        # Here we will check if given a problem definition, and list of steps, if we could reach the answer. If we can exactly reach the answer, we will return 1.0, if we can reach a similar answer, we will return a score between 0 and 1. If we cannot reach the answer at all, we will return 0.0.
+        # Create a prompt for the model
+        prompt = [
+            {
+                "role": "system",
+                "content": "You are a helpful assistant that is experiences with logical reasoning. The user is trying to solve a problem related to synthesizing a verifiable code from a given code or specification. In order to do so, the user came up with a list of steps. The user alse has prepared an answer. The user is asking you to check if following the steps, the user could actually reach the answer. Please answer with a score between 0 and 1, where 0 means you cannot derive the answer following the steps and 1 means you can derive the answer by following the steps. While scoring the steps, you should think about the logical deduction for each of the steps and how each of these step transform the problem. You should deeply reason about why the list of given steps are correct or not to reach the answer. Then, give a score between 0 and 1. You should format your answer in <think> provide detailed reasoning here </think> <score> score goes here </score> format. Do not include any other text in your answer.",
+            }
+        ]
+        user_prompt = f"{self.problem_prefect}\n\n" + self.problem_description + "\n"
+        user_prompt += "\nThe steps are: "
+        for i, step in enumerate(self.steps):
+            user_prompt += f"\nStep {i + 1}: {step}"
+        user_prompt += "\nThe answer is: "
+        user_prompt += f"\n{self.answer}"
+        prompt.append(
+            {
+                "role": "user",
+                "content": user_prompt,
+            }
+        )
+        return self.call_model_with_retry(prompt)
+
 
 # Example usage
-
-fmt = FormattedResponse(resp)
+fmt = FormattedResponse(problem_prefect="fstar", problem_desciption=problem_definition, response=resp)
 # print(fmt)
 print("Is well-formed (Reflection Only): ", fmt.is_well_formed(reflection_expected=True))
 print("Is well-formed (Steps Only): ", fmt.is_well_formed(steps_expected=True))
@@ -219,9 +321,6 @@ print("Is well-formed (Reflection + Steps): ", fmt.is_well_formed(reflection_exp
 print("Is well-formed (Reflection + Emulation): ", fmt.is_well_formed(reflection_expected=True, emulation_expected=True))
 print("Is well-formed (Steps + Emulation): ", fmt.is_well_formed(steps_expected=True, emulation_expected=True))
 print("Is well-formed (All): ", fmt.is_well_formed(reflection_expected=True, steps_expected=True, emulation_expected=True))
-print("Does steps match emulation:", fmt.does_steps_match_emulation())
-print("Answer matches steps:", fmt.answer_matches_steps())
-# print("Reflection:", fmt.reflection)
-# print("Steps:", fmt.steps)
-# print("Emulation:", fmt.emulation)
-# print("Answer:", fmt.answer)
+print("Step Emulation match emulation:", fmt.step_emulation_conformity_score())
+print("Step Answer conformity check:", fmt.step_answer_conformity_score())
+

@@ -6,3 +6,4 @@ spacy==3.8.6
 einops==0.8.1
 sentencepiece==0.2.0
 peft==0.15.2
+nltk==3.9.1

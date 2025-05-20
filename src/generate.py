@@ -123,9 +123,8 @@ for ti, test in enumerate(tqdm(test_data)):
                 "responses": generations,
             }
         )
-    
-    with open(result_path, "w") as f:
-        json.dump(test_data, f, indent=4)
+        with open(result_path, "w") as f:
+            json.dump(test_data, f, indent=4)
 print(f"Generated responses saved to {result_path}")
 
 
