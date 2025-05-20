@@ -257,9 +257,9 @@ class FormattedResponse:
             # Extract the score from the response
             try:
                 score = self.find_score_in_response(response_text)
-                print("====================")
-                print(response_text)
-                print("====================")
+                # print("====================")
+                # print(response_text)
+                # print("====================")
                 return score
             except ValueError as e:
                 max_trial -= 1
