@@ -99,9 +99,10 @@ resp = """"<think>
             Verify that no additional F* features (like effects or refinements) are needed here, as the problem doesn't specify any beyond the basic pair decomposition.
         </step>
     </emulation>
-    <answer>
-        let snd = fun (a, b) -> a
-    </answer>"""
+</think>
+<answer>
+    let snd = fun (x, y) -> y
+</answer>"""
 
 import re
 from textwrap import dedent
@@ -252,7 +253,11 @@ Steps:
             response_text = response.choices[0].message.content
             # Extract the score from the response
             try:
-                return self.find_score_in_response(response_text)
+                score = self.find_score_in_response(response_text)
+                print("====================")
+                print(response_text)
+                print("====================")
+                return score
             except ValueError as e:
                 max_trial -= 1
                 temparature += 0.1
