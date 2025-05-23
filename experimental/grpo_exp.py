@@ -28,10 +28,10 @@ print(train_dataset)
 import torch
 from transformers import AutoModelForCausalLM
 
-model_id = "Qwen/QwQ-32B"
-model = AutoModelForCausalLM.from_pretrained(
-    model_id,
-)
+# model_id = "Qwen/QwQ-32B"
+# model = AutoModelForCausalLM.from_pretrained(
+#     model_id,
+# )
 
 import re
 def format_reward(completions, **kwargs):
@@ -84,12 +84,13 @@ training_args = GRPOConfig(
     logging_steps=1,
     save_strategy="steps",
     save_steps=1,
+    use_vllm=True, # Use VLLM for generation
 )
 
 from trl import GRPOTrainer
 
 trainer = GRPOTrainer(
-    model=model,
+    model="deepseek-ai/deepseek-llm-7b-chat",
     reward_funcs=[format_reward, accuracy_reward],
     args=training_args,
     train_dataset=train_dataset
